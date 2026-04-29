@@ -10,14 +10,15 @@ from linebot.v3.messaging import (
     TextMessage,
 )
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from conversation_store import ConversationStore
 
 app = Flask(__name__)
 
 line_config = Configuration(access_token=os.environ["LINE_CHANNEL_ACCESS_TOKEN"])
 handler = WebhookHandler(os.environ["LINE_CHANNEL_SECRET"])
-genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+gemini_client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 store = ConversationStore()
 
 SYSTEM_PROMPT = """使用者是歐拉蔬食的經營者，居住在台灣高雄三民區，擔任私人導遊助理角色。
@@ -95,12 +96,21 @@ def handle_message(event):
         gemini_history.append({"role": role, "parts": [msg["content"]]})
 
     try:
-        model = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
-            system_instruction=SYSTEM_PROMPT,
+        contents = []
+        for msg in gemini_history:
+            contents.append(types.Content(
+                role=msg["role"],
+                parts=[types.Part(text=msg["parts"][0])]
+            ))
+        contents.append(types.Content(
+            role="user",
+            parts=[types.Part(text=user_text)]
+        ))
+        response = gemini_client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=contents,
+            config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT),
         )
-        chat = model.start_chat(history=gemini_history)
-        response = chat.send_message(user_text)
         assistant_text = response.text
     except Exception as e:
         assistant_text = f"系統發生錯誤，請稍後再試。（{type(e).__name__}）"
