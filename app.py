@@ -100,7 +100,7 @@ def handle_message(event):
             contents.append({"role": msg["role"], "parts": [{"text": msg["parts"][0]}]})
         contents.append({"role": "user", "parts": [{"text": user_text}]})
         response = gemini_client.models.generate_content(
-            model="gemini-1.5-flash",
+            model="gemini-2.0-flash",
             contents=contents,
             config={"system_instruction": SYSTEM_PROMPT},
         )
