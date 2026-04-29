@@ -11,7 +11,6 @@ from linebot.v3.messaging import (
 )
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
 from google import genai
-from google.genai import types
 from conversation_store import ConversationStore
 
 app = Flask(__name__)
@@ -98,22 +97,18 @@ def handle_message(event):
     try:
         contents = []
         for msg in gemini_history:
-            contents.append(types.Content(
-                role=msg["role"],
-                parts=[types.Part(text=msg["parts"][0])]
-            ))
-        contents.append(types.Content(
-            role="user",
-            parts=[types.Part(text=user_text)]
-        ))
+            contents.append({"role": msg["role"], "parts": [{"text": msg["parts"][0]}]})
+        contents.append({"role": "user", "parts": [{"text": user_text}]})
         response = gemini_client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-1.5-flash",
             contents=contents,
-            config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT),
+            config={"system_instruction": SYSTEM_PROMPT},
         )
         assistant_text = response.text
     except Exception as e:
-        assistant_text = f"系統發生錯誤，請稍後再試。（{type(e).__name__}）"
+        import traceback
+        traceback.print_exc()
+        assistant_text = f"系統發生錯誤，請稍後再試。（{type(e).__name__}: {e}）"
 
     history.append({"role": "user", "content": user_text})
     history.append({"role": "assistant", "content": assistant_text})
