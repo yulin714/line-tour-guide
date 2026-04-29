@@ -17,7 +17,10 @@ app = Flask(__name__)
 
 line_config = Configuration(access_token=os.environ["LINE_CHANNEL_ACCESS_TOKEN"])
 handler = WebhookHandler(os.environ["LINE_CHANNEL_SECRET"])
-gemini_client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+gemini_client = genai.Client(
+    api_key=os.environ["GEMINI_API_KEY"],
+    http_options={"api_version": "v1"},
+)
 store = ConversationStore()
 
 SYSTEM_PROMPT = """使用者是歐拉蔬食的經營者，居住在台灣高雄三民區，擔任私人導遊助理角色。
@@ -100,7 +103,7 @@ def handle_message(event):
             contents.append({"role": msg["role"], "parts": [{"text": msg["parts"][0]}]})
         contents.append({"role": "user", "parts": [{"text": user_text}]})
         response = gemini_client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-1.5-flash",
             contents=contents,
             config={"system_instruction": SYSTEM_PROMPT},
         )
